@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>저작권료 산정 프레임워크 — Interactive</title>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F5F7FA;
+    --ink: #0F172A;
+    --ink-soft: #334155;
+    --ink-mute: #64748B;
+    --card-bg: #FFFFFF;
+    --title-bar: #E7EBEE;
+    --footer: #E5E9EC;
+    --border: rgba(15, 23, 42, 0.06);
+    --shadow-card: 0 1px 3px rgba(15,23,42,0.04), 0 8px 24px rgba(15,23,42,0.06);
+    --shadow-hero: 0 8px 32px rgba(15,23,42,0.15);
+    --serif: 'Noto Serif KR', serif;
+    --sans: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, sans-serif;
+    --display: 'Inter', 'Pretendard Variable', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--bg);
+    font-family: var(--sans);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* ==================== SLIDE CONTAINER ==================== */
+  .slide {
+    width: 100%;
+    max-width: 1456px;
+    aspect-ratio: 16 / 9;
+    min-height: 640px;
+    margin: 0 auto;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    padding: 0;
+  }
+
+  /* ==================== TITLE BAR ==================== */
+  .title-bar {
+    width: 100%;
+    padding: 22px 60px;
+    background: var(--title-bar);
+    border-bottom: 1px solid rgba(15,23,42,0.04);
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .title-bar h1 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 32px;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    line-height: 1.2;
+  }
+
+  /* ==================== GRID LAYOUT ==================== */
+  .grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    padding: 24px 40px 40px;
+    min-height: 0;
+  }
+
+  .col {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-height: 0;
+  }
+
+  /* ==================== HERO CARD (FLIP) ==================== */
+  .hero {
+    flex: 0 0 auto;
+    height: 190px;
+    perspective: 1600px;
+    cursor: pointer;
+    position: relative;
+  }
+
+  .hero-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.85s cubic-bezier(0.65, 0, 0.35, 1);
+    transform-style: preserve-3d;
+  }
+
+  .hero[data-flipped="true"] .hero-inner {
+    transform: rotateY(180deg);
+  }
+
+  .face {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: var(--shadow-hero);
+  }
+
+  .face.back {
+    transform: rotateY(180deg);
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+  }
+
+  /* ==================== GRADIENT BOXES (FRONT) ==================== */
+  .face.front {
+    padding: 28px 32px;
+    color: #FFFFFF;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+  }
+
+  .g1 {
+    background:
+      linear-gradient(135deg,
+        #3ECCCA 0%,
+        #2BA8E0 35%,
+        #2563EB 65%,
+        #1E3A8A 100%);
+  }
+
+  .g2 {
+    background:
+      linear-gradient(120deg,
+        #7C3AED 0%,
+        #8B5CF6 30%,
+        #3B82F6 55%,
+        #10B981 100%);
+  }
+
+  /* Subtle texture overlay on gradient */
+  .face.front::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 85% 20%, rgba(255,255,255,0.12), transparent 50%),
+      radial-gradient(ellipse at 10% 80%, rgba(255,255,255,0.05), transparent 50%);
+    pointer-events: none;
+  }
+
+  .amount {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: 46px;
+    letter-spacing: -0.025em;
+    line-height: 1.05;
+    color: #FFFFFF;
+    margin-bottom: 12px;
+    position: relative;
+  }
+
+  .amount .unit {
+    font-weight: 500;
+    font-size: 36px;
+    margin-left: 4px;
+    opacity: 0.95;
+  }
+
+  .caption {
+    font-family: var(--sans);
+    font-size: 13.5px;
+    font-weight: 400;
+    line-height: 1.55;
+    color: rgba(255,255,255,0.92);
+    max-width: 95%;
+    position: relative;
+  }
+
+  .cue {
+    position: absolute;
+    bottom: 14px;
+    right: 20px;
+    font-family: var(--display);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: rgba(255,255,255,0.78);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: opacity 0.25s, transform 0.25s;
+  }
+
+  .hero:hover .cue {
+    color: rgba(255,255,255,1);
+    transform: translateX(-2px);
+  }
+
+  .cue .arrow {
+    display: inline-block;
+    width: 14px;
+    height: 1px;
+    background: currentColor;
+    position: relative;
+  }
+
+  .cue .arrow::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: -3px;
+    width: 7px;
+    height: 7px;
+    border-top: 1px solid currentColor;
+    border-right: 1px solid currentColor;
+    transform: rotate(45deg);
+  }
+
+  /* ==================== BACK FACE (CALCULATION STEPS) ==================== */
+  .face.back {
+    padding: 20px 26px 22px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .back-title {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .back-title .method {
+    color: var(--ink);
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    text-transform: none;
+    font-size: 14px;
+  }
+
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+  }
+
+  .step {
+    display: grid;
+    grid-template-columns: 26px 1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 6px 0;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+
+  .hero[data-flipped="true"] .step {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .hero[data-flipped="true"] .step:nth-child(1) { transition-delay: 0.3s; }
+  .hero[data-flipped="true"] .step:nth-child(2) { transition-delay: 0.42s; }
+  .hero[data-flipped="true"] .step:nth-child(3) { transition-delay: 0.54s; }
+  .hero[data-flipped="true"] .step:nth-child(4) { transition-delay: 0.66s; }
+  .hero[data-flipped="true"] .step.result { transition-delay: 0.82s; }
+
+  .step-num {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 11px;
+    color: var(--ink-mute);
+    letter-spacing: 0.03em;
+  }
+
+  .step-label {
+    font-family: var(--sans);
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    font-weight: 500;
+    line-height: 1.4;
+  }
+
+  .step-value {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--ink);
+    letter-spacing: -0.005em;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
+  .step.result {
+    grid-template-columns: 1fr auto;
+    background: linear-gradient(90deg, rgba(37,99,235,0.05), rgba(37,99,235,0.02));
+    margin: 4px -6px 0;
+    padding: 9px 10px;
+    border-radius: 4px;
+    border-left: 2px solid #2563EB;
+  }
+
+  .hero-2 .step.result {
+    background: linear-gradient(90deg, rgba(124,58,237,0.05), rgba(16,185,129,0.03));
+    border-left-color: #7C3AED;
+  }
+
+  .step.result .step-label {
+    font-weight: 700;
+    color: var(--ink);
+    font-size: 12.5px;
+  }
+
+  .step.result .step-value {
+    font-weight: 800;
+    font-size: 15px;
+    color: #1E3A8A;
+  }
+
+  .hero-2 .step.result .step-value { color: #7C3AED; }
+
+  .back-cue {
+    position: absolute;
+    bottom: 12px;
+    right: 22px;
+    font-family: var(--display);
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--ink-mute);
+    letter-spacing: 0.04em;
+    opacity: 0;
+    transition: opacity 0.3s 0.9s;
+  }
+
+  .hero[data-flipped="true"] .back-cue { opacity: 1; }
+
+  /* ==================== INFO CARD (DESCRIPTION) ==================== */
+  .info {
+    flex: 1;
+    background: var(--card-bg);
+    border-radius: 8px;
+    padding: 22px 26px 24px;
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .info h3 {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--ink);
+    text-align: center;
+    margin-bottom: 14px;
+    letter-spacing: -0.01em;
+  }
+
+  .info h3 .en {
+    font-family: var(--display);
+    font-weight: 500;
+    font-size: 15px;
+    color: var(--ink-soft);
+    margin-left: 4px;
+    letter-spacing: 0;
+  }
+
+  .info ul {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+  }
+
+  .info li {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+    padding-left: 16px;
+    position: relative;
+  }
+
+  .info li::before {
+    content: "•";
+    position: absolute;
+    left: 4px;
+    top: 0;
+    color: var(--ink-mute);
+    font-size: 14px;
+  }
+
+  /* ==================== FOOTER / PAGE NUMBER ==================== */
+  .footer-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 18px;
+    background: var(--footer);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 24px;
+  }
+
+  .page-num {
+    font-family: var(--sans);
+    font-size: 12px;
+    color: var(--ink-soft);
+    font-weight: 400;
+  }
+
+  /* ==================== RESET BUTTON ==================== */
+  .reset-all {
+    position: absolute;
+    bottom: 28px;
+    left: 30px;
+    padding: 6px 14px;
+    background: transparent;
+    border: 1px solid rgba(15,23,42,0.15);
+    border-radius: 20px;
+    font-family: var(--display);
+    font-size: 10.5px;
+    font-weight: 500;
+    color: var(--ink-soft);
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: all 0.2s;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  .reset-all.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .reset-all:hover {
+    background: var(--ink);
+    color: #fff;
+    border-color: var(--ink);
+  }
+
+  /* ==================== RESPONSIVE ==================== */
+  @media (max-width: 1200px) {
+    .amount { font-size: 38px; }
+    .amount .unit { font-size: 30px; }
+    .title-bar h1 { font-size: 28px; }
+    .grid { padding: 20px 32px 36px; }
+  }
+
+  @media (max-width: 860px) {
+    .slide { aspect-ratio: auto; min-height: auto; }
+    .grid { grid-template-columns: 1fr; }
+    .hero { height: 170px; }
+    .amount { font-size: 34px; }
+    .amount .unit { font-size: 26px; }
+    .title-bar { padding: 18px 24px; }
+    .title-bar h1 { font-size: 24px; }
+    .grid { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="slide">
+
+  <div class="title-bar">
+    <h1>저작권료 산정 프레임워크</h1>
+  </div>
+
+  <div class="grid">
+
+    <!-- ============== LEFT COLUMN: 수익접근법 ============== -->
+    <div class="col">
+      <div class="hero hero-1" data-flipped="false" role="button" tabindex="0" aria-label="수익접근법 산정 과정 보기">
+        <div class="hero-inner">
+          <div class="face front g1">
+            <div class="amount"><span class="amount-text">713억~1,112억</span><span class="unit">원</span></div>
+            <div class="caption">수익접근법 : 연간 AI 이용자 100만 명당 지상파 3사 뉴스 데이터의 매출 기여도</div>
+            <div class="cue"><span class="arrow"></span>산정 과정 보기</div>
+          </div>
+          <div class="face back">
+            <div class="back-title">
+              <span class="method">Revenue Approach</span>
+              <span>산정 과정</span>
+            </div>
+            <div class="steps">
+              <div class="step">
+                <span class="step-num">01</span>
+                <span class="step-label">설문조사 (16–60세 생성형 AI 이용자)</span>
+                <span class="step-value">1,297명</span>
+              </div>
+              <div class="step">
+                <span class="step-num">02</span>
+                <span class="step-label">컨조인트 분석 · 7개 속성 지불의사액 추정</span>
+                <span class="step-value">서열프로빗</span>
+              </div>
+              <div class="step">
+                <span class="step-num">03</span>
+                <span class="step-label">언어능력 기여 (고등학생→대학생 수준)</span>
+                <span class="step-value">166.1–258.9억</span>
+              </div>
+              <div class="step">
+                <span class="step-num">04</span>
+                <span class="step-label">최신성 기여 (RAG · 최신 뉴스 검색)</span>
+                <span class="step-value">547.3–853.3억</span>
+              </div>
+              <div class="step result">
+                <span class="step-label">합계 · 이용자 100만 명당 연간</span>
+                <span class="step-value">713.4 ~ 1,112.2억 원</span>
+              </div>
+            </div>
+            <div class="back-cue">클릭하여 닫기</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="info">
+        <h3>수익접근법 <span class="en">(Revenue Approach)</span></h3>
+        <ul>
+          <li>컨조인트 분석으로 AI 서비스 사용자의 한계 지불 의사액 추정</li>
+          <li>뉴스 데이터가 AI 기능(언어 능력, 최신성) 향상에 미친 기여율을 곱해 편익 산정</li>
+          <li>데이터 품질(언어 능력 기여도)과 최신성(1년 단위 로열티) 반영</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ============== RIGHT COLUMN: 원가접근법 ============== -->
+    <div class="col">
+      <div class="hero hero-2" data-flipped="false" role="button" tabindex="0" aria-label="원가접근법 산정 과정 보기">
+        <div class="hero-inner">
+          <div class="face front g2">
+            <div class="amount"><span class="amount-text">877.6억</span><span class="unit">원</span></div>
+            <div class="caption">원가접근법 : AI 개발사들이 분담해야 할 지상파 3사 데이터 연간 저작권료 추산</div>
+            <div class="cue"><span class="arrow"></span>산정 과정 보기</div>
+          </div>
+          <div class="face back">
+            <div class="back-title">
+              <span class="method">Cost Approach</span>
+              <span>산정 과정</span>
+            </div>
+            <div class="steps">
+              <div class="step">
+                <span class="step-num">01</span>
+                <span class="step-label">2024년 지상파 3사 뉴스 제작 총비용</span>
+                <span class="step-value">4,283억 원</span>
+              </div>
+              <div class="step">
+                <span class="step-num">02</span>
+                <span class="step-label">AHP 쌍대비교 (일관성 10% 이하 490건)</span>
+                <span class="step-value">9점 척도</span>
+              </div>
+              <div class="step">
+                <span class="step-num">03</span>
+                <span class="step-label">매체 4개(TV/라디오·포털·유튜브·AI) 분석</span>
+                <span class="step-value">매체별 이용도</span>
+              </div>
+              <div class="step">
+                <span class="step-num">04</span>
+                <span class="step-label">생성형 AI에서의 뉴스 이용도</span>
+                <span class="step-value">20.5%</span>
+              </div>
+              <div class="step result">
+                <span class="step-label">4,283억 × 20.5% · 연간</span>
+                <span class="step-value">약 877.6억 원</span>
+              </div>
+            </div>
+            <div class="back-cue">클릭하여 닫기</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="info">
+        <h3>원가접근법 <span class="en">(Cost Approach)</span></h3>
+        <ul>
+          <li>뉴스 제작 총비용 중 AI 사업자가 부담해야 할 몫을 산정</li>
+          <li>매체별 뉴스 이용도(AHP 분석)에 따라 배분하는 방식 채택</li>
+          <li>기존 경매 시장 부재 시 데이터 객관적 경제 가치 평가 대안</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <button class="reset-all" id="resetBtn">← 처음 화면으로</button>
+
+  <div class="footer-bar">
+    <span class="page-num">14</span>
+  </div>
+
+</div>
+
+<script>
+  (function() {
+    const heroes = document.querySelectorAll('.hero');
+    const resetBtn = document.getElementById('resetBtn');
+
+    function updateResetButton() {
+      const anyFlipped = Array.from(heroes).some(h => h.getAttribute('data-flipped') === 'true');
+      resetBtn.classList.toggle('visible', anyFlipped);
+    }
+
+    heroes.forEach(card => {
+      card.addEventListener('click', () => {
+        const isFlipped = card.getAttribute('data-flipped') === 'true';
+        card.setAttribute('data-flipped', isFlipped ? 'false' : 'true');
+        updateResetButton();
+      });
+
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          card.click();
+        }
+      });
+    });
+
+    resetBtn.addEventListener('click', () => {
+      heroes.forEach(h => h.setAttribute('data-flipped', 'false'));
+      updateResetButton();
+    });
+  })();
+</script>
+</body>
+</html>
