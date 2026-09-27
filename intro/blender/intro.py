@@ -10,9 +10,10 @@ Timeline (24 fps, 192 frames = 8 s):
   1-28    a big crumpled paper ball rolls in and wobbles to a stop
   32-58   it uncrumples and flies at the camera until the sheet fills the
           screen; "ASH PROJECT" is printed on it, so the words unfold too
-  58-90   full-screen hold so the title can be read
-  90-120  the sheet pulls back and turns out to be held by Ash
-  120-132 Ash catches it with a small bounce
+  58-90   full-screen hold so the title can be read; at frame 60 a hidden
+          cut puts the sheet in Ash's outstretched hands at the lens
+  90-132  Ash pulls the sheet down to his chest while the camera dollies
+          back, revealing him holding it
   134-170 the episode subtitle pops up letter by letter beside him;
           Ash looks over at it and tilts his head
   170-192 hold
@@ -41,11 +42,22 @@ SHEET_W, SHEET_H = 2.9, 1.9
 ASH_POS = (-1.3, 0.0, 0.0)
 HELD_SCALE = 0.45                       # sheet size in Ash's hands
 HELD_POS = (ASH_POS[0], -0.34, 1.12)    # just under his chin, in front of his chest
+EXT_POS = (ASH_POS[0], -0.62, 1.45)     # at arm's length, pushed toward the lens
 BALL_R = 0.7
 BALL_POS = (0.0, -3.0, BALL_R)
 # Where the flattened sheet overfills the whole frame, on the camera's axis.
 _d = 2.9
 COVER_POS = (0.0, CAM_LOC[1] + _d, CAM_LOC[2] - _d * (CAM_LOC[2] - CAM_TARGET[2]) / (CAM_TARGET[1] - CAM_LOC[1]))
+# The hidden cut: once the sheet fills the frame, camera and sheet jump so the
+# sheet is in Ash's outstretched hands. Scaling the camera-to-sheet offset by
+# HELD_SCALE keeps the image identical, so the jump can't be seen.
+CUT = 60
+CAM_CLOSE = tuple(e + HELD_SCALE * (c - v) for e, c, v in zip(EXT_POS, CAM_LOC, COVER_POS))
+TARGET_CLOSE = tuple(c + (t - l) for c, t, l in zip(CAM_CLOSE, CAM_TARGET, CAM_LOC))
+FILL_LOC, FILL_ENERGY = (CAM_LOC[0] + 1.2, CAM_LOC[1] - 0.5, CAM_LOC[2] + 1.6), 260
+# The studio key/rim reach the close position too, so trim the fill there.
+CLOSE_FILL_TRIM = 0.27
+FILL_CLOSE = tuple(e + HELD_SCALE * (f - v) for e, f, v in zip(EXT_POS, FILL_LOC, COVER_POS))
 TOPIC_CENTER = (1.55, 0.0, 1.15)
 TOPIC_MAX_W = 3.1
 
@@ -271,28 +283,49 @@ def animate_sheet(sheet):
             if kp.co[0] == 36:
                 kp.interpolation, kp.easing = "CUBIC", "EASE_OUT"
 
-    # Full-screen hold with a slow drift toward the camera so it stays alive.
-    cx, cy, cz = COVER_POS
-    key(sheet, "location", 88, (cx, cy - 0.12, cz))
-    # Pull back into Ash's hands.
-    key(sheet, "location", 90, (cx, cy - 0.12, cz), interp="CUBIC", easing="EASE_IN_OUT")
-    key(sheet, "scale", 90, (1, 1, 1), interp="CUBIC", easing="EASE_IN_OUT")
+    # The hidden cut: from here on the sheet is in Ash's outstretched hands.
+    key(sheet, "location", CUT - 1, COVER_POS, interp="CONSTANT")
+    key(sheet, "scale", CUT - 1, (1, 1, 1), interp="CONSTANT")
+    key(sheet, "location", CUT, EXT_POS)
+    key(sheet, "scale", CUT, (HELD_SCALE,) * 3)
+    # Hold for reading, then Ash pulls it down to his chest.
+    key(sheet, "location", 90, EXT_POS, interp="CUBIC", easing="EASE_IN_OUT")
     key(sheet, "rotation_euler", 90, (0, 0, 0))
-    key(sheet, "rotation_euler", 106, deg(0, 0, -6))
-    key(sheet, "location", 120, HELD_POS)
-    key(sheet, "scale", 120, (HELD_SCALE,) * 3)
-    key(sheet, "rotation_euler", 120, deg(-4, 0, 0))
-    # Catch bounce, then ride along with Ash's idle motion.
+    key(sheet, "rotation_euler", 104, deg(-10, 0, 0))
+    key(sheet, "location", 116, HELD_POS)
+    key(sheet, "rotation_euler", 116, deg(-4, 0, 0))
+    # Settle bounce, then ride along with Ash's idle motion.
     hx, hy, hz = HELD_POS
-    key(sheet, "location", 124, (hx, hy, hz - 0.05))
-    key(sheet, "location", 130, (hx, hy, hz + 0.01))
-    key(sheet, "rotation_euler", 128, deg(2, 0, 0))
-    key(sheet, "location", 134, HELD_POS)
-    key(sheet, "rotation_euler", 134, deg(0, 0, 0))
+    key(sheet, "location", 120, (hx, hy, hz - 0.04))
+    key(sheet, "location", 125, (hx, hy, hz + 0.01))
+    key(sheet, "rotation_euler", 122, deg(2, 0, 0))
+    key(sheet, "location", 130, HELD_POS)
+    key(sheet, "rotation_euler", 130, deg(0, 0, 0))
     key(sheet, "location", 150, HELD_POS)
     key(sheet, "location", 162, (hx + 0.03, hy, hz))
     key(sheet, "rotation_euler", 162, deg(0, -3, 0))
     key(sheet, "location", 192, (hx + 0.03, hy, hz))
+
+
+def animate_camera(cam, target, fill):
+    """Jump in with the hidden cut, then dolly back out as Ash lowers the sheet."""
+    for ob, far, near in ((cam, CAM_LOC, CAM_CLOSE), (target, CAM_TARGET, TARGET_CLOSE),
+                          (fill, FILL_LOC, FILL_CLOSE)):
+        key(ob, "location", 1, far, interp="CONSTANT")
+        key(ob, "location", CUT - 1, far, interp="CONSTANT")
+        key(ob, "location", CUT, near)
+        key(ob, "location", 92, near, interp="CUBIC", easing="EASE_IN_OUT")
+        key(ob, "location", 132, far)
+    # Keep the sheet equally bright across the cut (area light ~ 1/distance^2).
+    fd = fill.data
+    for f, e in ((1, FILL_ENERGY), (CUT - 1, FILL_ENERGY), (CUT, FILL_ENERGY * HELD_SCALE ** 2 * CLOSE_FILL_TRIM),
+                 (92, FILL_ENERGY * HELD_SCALE ** 2 * CLOSE_FILL_TRIM), (132, FILL_ENERGY)):
+        fd.energy = e
+        fd.keyframe_insert("energy", frame=f)
+    for fc in fd.animation_data.action.fcurves:
+        for kp in fc.keyframe_points:
+            if kp.co[0] == CUT - 1:
+                kp.interpolation = "CONSTANT"
 
 
 def arm_euler(shoulder, target_world):
@@ -306,29 +339,38 @@ def arm_euler(shoulder, target_world):
 def animate_ash(p):
     root, body, head = p["root"], p["body"], p["head"]
     sl, sr = p["shoulder_L"], p["shoulder_R"]
-    # Hands grip the sheet's side edges (held size/position). Computed before
-    # any scale keys, which would collapse the rig's world matrices.
-    hx, hy, hz = HELD_POS
+    # Hands grip the sheet's side edges, at arm's length and at the chest.
+    # Computed before any scale keys, which would collapse the rig's matrices.
     half = SHEET_W * HELD_SCALE / 2
-    grip_l = arm_euler(sl, (hx - half + 0.02, hy + 0.02, hz - 0.02))
-    grip_r = arm_euler(sr, (hx + half - 0.02, hy + 0.02, hz - 0.02))
 
-    # Invisible until the sheet fills the screen, then already in place.
+    def grips(pos):
+        x, y, z = pos
+        return (arm_euler(sl, (x - half + 0.02, y + 0.02, z - 0.02)),
+                arm_euler(sr, (x + half - 0.02, y + 0.02, z - 0.02)))
+    ext_l, ext_r = grips(EXT_POS)
+    held_l, held_r = grips(HELD_POS)
+
+    # Invisible until the hidden cut, then already holding the sheet up.
     key(root, "scale", 1, (0, 0, 0), interp="CONSTANT")
-    key(root, "scale", 60, (0, 0, 0), interp="CONSTANT")
-    key(root, "scale", 61, (1, 1, 1))
-    for f in (61, 120):
-        key(sl, "rotation_euler", f, grip_l)
-        key(sr, "rotation_euler", f, grip_r)
+    key(root, "scale", CUT - 1, (0, 0, 0), interp="CONSTANT")
+    key(root, "scale", CUT, (1, 1, 1))
+    for f, l, r in ((CUT, ext_l, ext_r), (90, ext_l, ext_r), (116, held_l, held_r)):
+        key(sl, "rotation_euler", f, l)
+        key(sr, "rotation_euler", f, r)
+    for fc in sl.animation_data.action.fcurves[:] + sr.animation_data.action.fcurves[:]:
+        for kp in fc.keyframe_points:
+            if kp.co[0] == 90:
+                kp.interpolation, kp.easing = "CUBIC", "EASE_IN_OUT"
 
-    # Catch: a squash as the sheet lands in his hands.
-    key(root, "scale", 120, (1, 1, 1))
-    key(root, "scale", 124, (1.05, 1.05, 0.93))
-    key(root, "scale", 130, (0.99, 0.99, 1.02))
-    key(root, "scale", 134, (1, 1, 1))
-    key(body, "rotation_euler", 118, (0, 0, 0))
-    key(body, "rotation_euler", 124, deg(6, 0, 0))
-    key(body, "rotation_euler", 132, deg(0, 0, 0))
+    # Leans back a touch while pulling, then a small settle.
+    key(body, "rotation_euler", 90, (0, 0, 0))
+    key(body, "rotation_euler", 108, deg(-5, 0, 0))
+    key(body, "rotation_euler", 118, deg(4, 0, 0))
+    key(body, "rotation_euler", 128, (0, 0, 0))
+    key(root, "scale", 116, (1, 1, 1))
+    key(root, "scale", 120, (1.04, 1.04, 0.95))
+    key(root, "scale", 126, (0.99, 0.99, 1.02))
+    key(root, "scale", 130, (1, 1, 1))
 
     # Looks over at the subtitle as it appears, then a pleased tilt.
     key(head, "rotation_euler", 134, (0, 0, 0))
@@ -372,20 +414,22 @@ def build(subtitle, title="ASH PROJECT", workdir="/tmp"):
     parts = ash_model.build_ash(ASH_POS)
     letters = make_topic_letters(subtitle.upper(), ash_model.paper_material("TopicInk", (0.035, 0.035, 0.04)))
 
+    # Soft frontal light from just above the camera, so the sheet is lit
+    # when it fills the frame (the studio key sits off to the side).
+    fl = bpy.data.lights.new("CoverFill", "AREA")
+    fl.size, fl.energy = 4.0, FILL_ENERGY
+    fill = bpy.data.objects.new("CoverFill", fl)
+    fill.location = FILL_LOC
+    fill.rotation_euler = deg(80, 0, 10)
+    bpy.context.scene.collection.objects.link(fill)
+    cam = studio.add_camera(loc=CAM_LOC, target=CAM_TARGET, lens=LENS)
+
     animate_ball(ball)
     animate_sheet(sheet)
     animate_ash(parts)
     animate_topic(letters)
+    animate_camera(cam, bpy.data.objects["CamTarget"], fill)
 
-    # Soft frontal light from just above the camera, so the sheet is lit
-    # when it fills the frame (the studio key sits off to the side).
-    fl = bpy.data.lights.new("CoverFill", "AREA")
-    fl.size, fl.energy = 4.0, 260
-    flo = bpy.data.objects.new("CoverFill", fl)
-    flo.location = (CAM_LOC[0] + 1.2, CAM_LOC[1] - 0.5, CAM_LOC[2] + 1.6)
-    flo.rotation_euler = deg(80, 0, 10)
-    bpy.context.scene.collection.objects.link(flo)
-    studio.add_camera(loc=CAM_LOC, target=CAM_TARGET, lens=LENS)
     scene = bpy.context.scene
     scene.frame_start, scene.frame_end = 1, END
     return scene

@@ -73,9 +73,9 @@ def main(path):
     put(unfold, 36, 0.6)                                                            # uncrumple
     put(whoosh(0.8, 200, 2200), 38, 0.45)                                           # flies at camera
     put(thump(70, 0.3, 0.2), 57, 0.35)                                              # fills the frame
-    put(whoosh(0.9, 180, 1800), 90, 0.4)                                            # pulls back
-    put(thump(100, 0.2, 0.4), 120, 0.4)                                             # caught
-    put(crinkle(0.25, 180, 1200, 7000), 120, 0.3)
+    put(whoosh(0.9, 180, 1800), 90, 0.4)                                            # pulled back from the lens
+    put(thump(100, 0.2, 0.4), 116, 0.4)                                             # sheet settles at his chest
+    put(crinkle(0.25, 180, 1200, 7000), 116, 0.3)
     for i in range(13):                                                             # letters pop
         put(thump(260 + 25 * (i % 4), 0.08, 0.9), 136 + 2 * i, 0.16)
     mix = np.tanh(mix * 1.2) * 0.8
