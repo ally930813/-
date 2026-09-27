@@ -470,6 +470,13 @@ def main():
     scene.render.use_overwrite = False  # re-running resumes, skipping finished frames
     scene.render.filepath = os.path.join(a.out, "f_")
     bpy.ops.render.render(animation=True)
+    if a.motion_blur and s <= CUT <= e:
+        # Motion blur would smear across the hidden cut and darken that one
+        # frame; the camera is still there anyway, so render it without blur.
+        scene.render.use_motion_blur = False
+        scene.frame_set(CUT)
+        scene.render.filepath = os.path.join(a.out, f"f_{CUT:04d}.png")
+        bpy.ops.render.render(write_still=True)
 
 
 if __name__ == "__main__":
