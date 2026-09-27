@@ -454,6 +454,7 @@ def main():
     w, h = (int(x) for x in a.res.split("x"))
     studio.render_settings(res=(w, h), samples=a.samples, fps=FPS)
     scene.render.use_motion_blur = a.motion_blur
+    scene.render.motion_blur_shutter = 0.25  # subtle: keeps text legible during the dolly
     scene.render.use_persistent_data = True
     if a.blend:
         bpy.ops.wm.save_as_mainfile(filepath=os.path.abspath(a.blend))
@@ -466,6 +467,7 @@ def main():
     s, e = (int(x) for x in a.frames.split("-"))
     scene.frame_start, scene.frame_end = s, e
     scene.render.image_settings.file_format = "PNG"
+    scene.render.use_overwrite = False  # re-running resumes, skipping finished frames
     scene.render.filepath = os.path.join(a.out, "f_")
     bpy.ops.render.render(animation=True)
 

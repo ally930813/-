@@ -7,7 +7,7 @@
 #
 # Needs a Python with bpy (pip install bpy==4.2.0 imageio-ffmpeg); set PY to it.
 # "preview" renders 640x360 @ 12 samples (~20 min on 4 CPUs) instead of
-# 1920x1080 @ 32 samples with motion blur.
+# 1920x1080 @ 16 samples (denoised) with motion blur (~2.3 h on 4 CPUs).
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 PY="${PY:-python3}"
@@ -19,7 +19,7 @@ WORK="$(mktemp -d)"
 if [ "$MODE" = preview ]; then
   "$PY" "$HERE/intro.py" --out "$WORK/frames" --subtitle "$SUB" --res 640x360 --samples 12
 else
-  "$PY" "$HERE/intro.py" --out "$WORK/frames" --subtitle "$SUB" --res 1920x1080 --samples 32 --motion-blur
+  "$PY" "$HERE/intro.py" --out "$WORK/frames" --subtitle "$SUB" --res 1920x1080 --samples 16 --motion-blur
 fi
 "$PY" "$HERE/sfx.py" "$WORK/sfx.wav"
 FFMPEG="$("$PY" -c 'import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())')"

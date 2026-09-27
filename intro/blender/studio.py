@@ -91,6 +91,12 @@ def render_settings(res=(1920, 1080), samples=64, engine="CYCLES", fps=24):
         scene.cycles.device = "CPU"
         scene.cycles.samples = samples
         scene.cycles.use_denoising = True
-        scene.cycles.max_bounces = 6
+        scene.cycles.max_bounces = 4
+        scene.cycles.diffuse_bounces = 2
+        scene.cycles.glossy_bounces = 2
+        scene.cycles.transmission_bounces = 2
+        scene.cycles.caustics_reflective = False
+        scene.cycles.caustics_refractive = False
+        scene.cycles.adaptive_threshold = 0.02
     scene.view_settings.view_transform = "AgX"
     scene.view_settings.look = "AgX - Medium High Contrast"
