@@ -1,16 +1,18 @@
 #!/usr/bin/env bash
-# Render the "ASH SAYS" intro and encode it to MP4 with sound effects.
+# Render the "ASH PROJECT" intro and encode it to MP4 with sound effects.
 #
 #   ./make_intro.sh "TODAY'S TOPIC" out.mp4 [preview]
 #
+# The first argument is the episode subtitle that pops up beside Ash.
+#
 # Needs a Python with bpy (pip install bpy==4.2.0 imageio-ffmpeg); set PY to it.
-# "preview" renders 640x360 @ 12 samples (~10 min on 4 CPUs) instead of
+# "preview" renders 640x360 @ 12 samples (~20 min on 4 CPUs) instead of
 # 1920x1080 @ 32 samples with motion blur.
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 PY="${PY:-python3}"
 SUB="${1:-TODAY'S TOPIC}"
-OUT="${2:-ash_says_intro.mp4}"
+OUT="${2:-ash_project_intro.mp4}"
 MODE="${3:-final}"
 WORK="$(mktemp -d)"
 

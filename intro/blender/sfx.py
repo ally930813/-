@@ -1,6 +1,6 @@
 """Synthesise the intro's paper sound effects, synced to intro.py's timeline.
 
-Usage: python sfx.py out.wav   (7 s, 48 kHz, stereo)
+Usage: python sfx.py out.wav   (8 s, 48 kHz, stereo)
 """
 import sys
 import wave
@@ -9,7 +9,7 @@ import numpy as np
 
 SR = 48000
 FPS = 24
-DUR = 7.0
+DUR = 8.0
 rng = np.random.default_rng(4)
 
 
@@ -66,21 +66,18 @@ def main(path):
         e = min(n, s + len(x))
         mix[s:e] += gain * x[: e - s]
 
-    put(crinkle(1.25, 90, 800, 5000) * np.linspace(0.4, 1, int(1.25 * SR)), 1, 0.35)  # roll in
-    put(thump(110, 0.15, 0.6), 34, 0.25)                                            # wobble taps
-    put(thump(120, 0.15, 0.6), 37, 0.18)
-    unfold = crinkle(0.8, 170, 1200, 7000) * np.linspace(1, 0.25, int(0.8 * SR))
-    put(unfold, 42, 0.55)                                                           # uncrumple
-    put(whoosh(0.3, 300, 1800), 58, 0.18)                                           # settle flutter
-    put(whoosh(0.35, 400, 2500), 62, 0.25)                                          # hop out
-    put(thump(90, 0.25, 0.3), 77, 0.45)                                             # landing
-    put(thump(62, 0.45, 0.8), 84, 1.0)                                              # STAMP
-    put(crinkle(0.25, 200), 84, 0.3)
-    put(thump(95, 0.2, 0.3), 96, 0.3)                                               # proud hop land
-    put(whoosh(0.55, 250, 3500), 127, 0.6)                                          # flip
-    put(crinkle(0.3, 260, 1200, 7000), 139, 0.45)                                   # paper flap settle
-    put(thump(140, 0.12, 0.8), 140, 0.25)
-
+    put(crinkle(1.1, 110, 700, 4500) * np.linspace(0.4, 1, int(1.1 * SR)), 1, 0.4)   # big ball rolls in
+    put(thump(95, 0.18, 0.5), 29, 0.3)                                              # wobble taps
+    put(thump(105, 0.18, 0.5), 32, 0.2)
+    unfold = crinkle(0.9, 190, 1000, 7000) * np.linspace(1, 0.3, int(0.9 * SR))
+    put(unfold, 36, 0.6)                                                            # uncrumple
+    put(whoosh(0.8, 200, 2200), 38, 0.45)                                           # flies at camera
+    put(thump(70, 0.3, 0.2), 57, 0.35)                                              # fills the frame
+    put(whoosh(0.9, 180, 1800), 90, 0.4)                                            # pulls back
+    put(thump(100, 0.2, 0.4), 120, 0.4)                                             # caught
+    put(crinkle(0.25, 180, 1200, 7000), 120, 0.3)
+    for i in range(13):                                                             # letters pop
+        put(thump(260 + 25 * (i % 4), 0.08, 0.9), 136 + 2 * i, 0.16)
     mix = np.tanh(mix * 1.2) * 0.8
     fade = int(0.25 * SR)
     mix[-fade:] *= np.linspace(1, 0, fade)

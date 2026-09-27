@@ -42,3 +42,12 @@ Alternatives considered: B (speech bubble — rejected, implies mouth), C (crump
 Higgsfield media is served from `d2ol7oe51mr4n9.cloudfront.net`. The environment's network access was switched to
 **Custom** with that domain allowed (plus the default list); this applies to sessions started after the change.
 Verify with: `curl -sS -o /dev/null -w "%{http_code}\n" https://d2ol7oe51mr4n9.cloudfront.net/`
+
+## Update — Blender pipeline (current approach)
+AI video was dropped for a credit-free Blender build in `intro/blender/`:
+- `ash_model.py` procedural paper-craft Ash (eyes are plain raised squares, mouth a closed ridge).
+- `intro.py` the 8 s "ASH PROJECT" shot: a big paper ball rolls in, uncrumples and fills the
+  screen with "ASH PROJECT" printed on it, holds for reading, pulls back into Ash's hands, then the
+  episode subtitle pops up letter by letter beside him.
+- `sfx.py` synthesised paper sound effects synced to the timeline.
+- `make_intro.sh "SUBTITLE" out.mp4 [preview]` renders and encodes (needs `pip install bpy==4.2.0 imageio-ffmpeg pillow`).
