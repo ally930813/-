@@ -69,8 +69,9 @@ def main(path):
     put(crinkle(1.25, 90, 800, 5000) * np.linspace(0.4, 1, int(1.25 * SR)), 1, 0.35)  # roll in
     put(thump(110, 0.15, 0.6), 34, 0.25)                                            # wobble taps
     put(thump(120, 0.15, 0.6), 37, 0.18)
-    put(crinkle(0.7, 420), 40, 0.6)                                                 # burst + uncrumple
-    put(whoosh(0.35, 500, 4000), 40, 0.35)
+    unfold = crinkle(0.8, 170, 1200, 7000) * np.linspace(1, 0.25, int(0.8 * SR))
+    put(unfold, 42, 0.55)                                                           # uncrumple
+    put(whoosh(0.3, 300, 1800), 58, 0.18)                                           # settle flutter
     put(whoosh(0.35, 400, 2500), 62, 0.25)                                          # hop out
     put(thump(90, 0.25, 0.3), 77, 0.45)                                             # landing
     put(thump(62, 0.45, 0.8), 84, 1.0)                                              # STAMP

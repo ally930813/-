@@ -8,7 +8,7 @@ Usage (with the bpy venv's python):
 
 Timeline (24 fps, 168 frames = 7 s):
   1-30    crumpled paper ball rolls in and wobbles to a stop
-  40-60   the ball bursts open into a big flat sheet of paper
+  36-68   the ball stirs, then smoothly uncrumples into a big flat sheet
   62-80   Ash hops out from behind the sheet
   84-98   "ASH SAYS" is stamped onto the sheet; Ash does a proud hop
   100-118 Ash points at the title
@@ -134,7 +134,9 @@ def make_sheet(mat, seed=21):
     sk = ob.shape_key_add(name="Crumpled")
     for i, v in enumerate(me.vertices):
         x, _, z = v.co
-        sk.data[i].co = (x * 0.8, crease_offset(x, z, folds), z * 0.8)
+        # Creases plus a strong cup curl, so the scrunched sheet reads as a wad.
+        cup = 0.9 * ((x / SHEET_W) ** 2 + (z / SHEET_H) ** 2) * 4
+        sk.data[i].co = (x * 0.75, crease_offset(x, z, folds) + cup, z * 0.75)
     s = ob.modifiers.new("Thickness", "SOLIDIFY")
     s.thickness = 0.008
     return ob
@@ -162,28 +164,9 @@ def make_text(name, body, size, mat, parent, back=False, max_w=2.5):
     return ob
 
 
-def make_shards(mat, n=10, seed=7):
-    rnd = random.Random(seed)
-    shards = []
-    for i in range(n):
-        bm = bmesh.new()
-        s = rnd.uniform(0.08, 0.16)
-        vs = [bm.verts.new((rnd.uniform(-s, s), 0, rnd.uniform(-s, s))) for _ in range(3)]
-        bm.faces.new(vs)
-        me = bpy.data.meshes.new(f"Shard{i}")
-        bm.to_mesh(me)
-        bm.free()
-        ob = bpy.data.objects.new(f"Shard{i}", me)
-        bpy.context.scene.collection.objects.link(ob)
-        ob.data.materials.append(mat)
-        ob.modifiers.new("Thick", "SOLIDIFY").thickness = 0.006
-        shards.append(ob)
-    return shards
-
-
 # ---------------------------------------------------------------- animation
 
-def animate_ball(ball, sheet, shards):
+def animate_ball(ball, sheet):
     cx, cy, _ = SHEET_POS
     r = 0.42
     ball.location = (-5.2, cy - 0.4, r)
@@ -195,40 +178,35 @@ def animate_ball(ball, sheet, shards):
     # Wobble to a stop.
     for f, a in ((34, -0.18), (37, 0.1), (40, 0.0)):
         key(ball, "rotation_euler", f, (0, (cx + 5.2) / r + a, 0))
+    # Anticipation: a small squash and stretch, as if something inside stirs.
     key(ball, "scale", 36, (1, 1, 1))
-    key(ball, "scale", 40, (1.08, 1.08, 0.9))
-    key(ball, "scale", 43, (1.3, 1.3, 1.3))
-    key(ball, "scale", 46, (0, 0, 0))
+    key(ball, "scale", 39, (1.07, 1.07, 0.9))
+    key(ball, "scale", 42, (0.96, 0.96, 1.06))
+    key(ball, "scale", 44, (0, 0, 0))
 
-    # The sheet bursts out of the ball and uncrumples.
+    # No burst: the crumpled sheet takes the ball's place and smoothly
+    # uncrumples, grows and rises into position, then settles with a flutter.
     key(sheet, "scale", 1, (0, 0, 0), interp="CONSTANT")
-    key(sheet, "scale", 42, (0.22, 0.22, 0.22))
-    key(sheet, "scale", 54, (1.05, 1.05, 1.05))
-    key(sheet, "scale", 60, (1, 1, 1))
-    key(sheet, "location", 42, (cx, cy - 0.4, 0.45))
-    key(sheet, "location", 56, SHEET_POS)
-    key(sheet, "rotation_euler", 42, deg(0, 25, 0))
-    key(sheet, "rotation_euler", 56, deg(0, -3, 0))
-    key(sheet, "rotation_euler", 62, deg(0, 0, 0))
+    key(sheet, "scale", 41, (0, 0, 0), interp="CONSTANT")
+    key(sheet, "scale", 42, (0.36, 0.36, 0.36))
+    key(sheet, "scale", 64, (1, 1, 1))
+    key(sheet, "location", 42, (cx, cy - 0.4, r))
+    key(sheet, "location", 64, SHEET_POS)
+    key(sheet, "rotation_euler", 42, deg(0, 18, 0))
+    key(sheet, "rotation_euler", 56, deg(4, -2, 0))
+    key(sheet, "rotation_euler", 63, deg(-1.5, 0.5, 0))
+    key(sheet, "rotation_euler", 68, deg(0, 0, 0))
     sk = sheet.data.shape_keys.key_blocks["Crumpled"]
-    for f, v in ((42, 1.0), (50, 0.45), (58, 0.1), (64, 0.035)):
+    for f, v in ((42, 1.0), (66, 0.035)):
         sk.value = v  # keep a hint of creases in the flattened paper
         sk.keyframe_insert("value", frame=f)
-
-    # Paper bits fly out of the burst and fall.
-    rnd = random.Random(3)
-    for ob in shards:
-        a = rnd.uniform(0, 2 * math.pi)
-        v = rnd.uniform(1.4, 2.6)
-        vx, vz = math.cos(a) * v, abs(math.sin(a)) * v + 1.0
-        vy = rnd.uniform(-1.2, -0.3)
-        key(ob, "scale", 1, (0, 0, 0), interp="CONSTANT")
-        for i, f in enumerate(range(43, 68, 3)):
-            t = (f - 43) / FPS
-            key(ob, "location", f, (cx + vx * t, cy - 0.4 + vy * t, 0.45 + vz * t - 4.9 * t * t))
-            key(ob, "rotation_euler", f, (a * 3 + t * 9, t * 7, a + t * 5))
-            s = 1.0 if f < 58 else max(0.0, 1 - (f - 58) / 9)
-            key(ob, "scale", f, (s, s, s))
+    # Fast start, gentle finish: cubic ease-out from the swap frame.
+    for action in (sheet.animation_data.action, sheet.data.shape_keys.animation_data.action):
+        for fc in action.fcurves:
+            for kp in fc.keyframe_points:
+                if kp.co[0] == 42:
+                    kp.interpolation = "CUBIC"
+                    kp.easing = "EASE_OUT"
 
 
 def animate_title(title, sub, sheet):
@@ -262,14 +240,14 @@ def animate_ash(p):
     rest_l, rest_r = deg(0, 12, 0), deg(0, -12, 0)
 
     # Hidden behind the sheet until he hops out.
-    hide = (0.35, 0.9, 0.0)
+    hide = (0.35, 1.25, 0.0)
     key(root, "scale", 1, (0, 0, 0), interp="CONSTANT")
     key(root, "location", 1, hide, interp="CONSTANT")
     key(root, "scale", 61, (0, 0, 0), interp="CONSTANT")
     key(root, "location", 61, hide, interp="CONSTANT")
     key(root, "scale", 62, (1, 1, 1))
     key(root, "location", 62, hide)
-    key(root, "location", 70, (1.0, 0.45, 1.0))
+    key(root, "location", 70, (1.0, 0.6, 1.0))
     key(root, "location", 77, (ax, ay, 0))
     key(root, "rotation_euler", 62, deg(0, 0, 40))
     key(root, "rotation_euler", 77, deg(0, 0, 0))
@@ -346,10 +324,9 @@ def build(subtitle):
     sheet = make_sheet(ash_model.paper_material("SheetPaper", (0.9, 0.89, 0.86)))
     title = make_text("Title", "ASH SAYS", 0.62, ink, sheet)
     sub = make_text("Subtitle", subtitle, 0.46, ink, sheet, back=True)
-    shards = make_shards(paper)
     parts = ash_model.build_ash(ASH_POS)
 
-    animate_ball(ball, sheet, shards)
+    animate_ball(ball, sheet)
     animate_title(title, sub, sheet)
     animate_ash(parts)
 
